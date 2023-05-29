@@ -1,0 +1,49 @@
+plugins {
+  id 'org.xtext.xtend' version '2.0.8'
+  id 'org.xtext.builder' version '2.0.8'
+  id 'java'
+  id 'eclipse'
+  id 'application'
+}
+
+sourceCompatibility = '1.8'
+targetCompatibility = '1.8'
+
+def blangVersion = '4.0.1'
+
+dependencies {
+  xtextLanguages "com.github.UBC-Stat-ML.blangDSL:ca.ubc.stat.blang:${blangVersion}"
+  compile group: 'com.github.UBC-Stat-ML', name: 'blangSDK', version: '2.9.3'
+  compile group: 'com.google.guava', name: 'guava', version: '25.0-jre'
+}
+  
+  
+xtext {
+  languages {
+    blang {
+      setup = 'ca.ubc.stat.blang.BlangDslStandaloneSetup'
+      fileExtension = 'bl'
+      generator.outlet.producesJava = true
+      generator.javaSourceLevel = '1.8'
+    }
+  }
+}
+
+repositories {
+  mavenCentral()
+  jcenter()
+  maven {
+    url "https://www.stat.ubc.ca/~bouchard/maven/"
+  }
+  maven {
+    url "http://www.biojava.org/download/maven/"
+  }
+}
+
+xtend {
+  generator {
+    javaSourceLevel = 1.8
+  }
+}
+
+mainClassName = "demo.Example"

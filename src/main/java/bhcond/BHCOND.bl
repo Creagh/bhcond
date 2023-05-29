@@ -1,0 +1,37 @@
+package bhcond
+
+import bhcond.ModelVariant
+
+model BHCOND {
+  random GraphAdjMatrix graph // data
+  random BasicDendrogram dend ?: BasicDendrogram::initDend(graph) // parameter
+  random RealVar alpha ?: latentReal, beta ?: latentReal // hyperparameters
+  
+  //param RealVar alpha // hyperparameter // fixed values
+  //param RealVar beta // hyperparameter
+  
+  param ModelVariant variant // enum type specifying which variant of the model to use
+  
+  random RealVar theta ?: latentReal // mixture parameter
+  random RealVar rho ?: latentReal // probability parameter for Truncated Geometric component
+  
+  random GraphSimulationMonitor monitor ?: new GraphSimulationMonitor(graph.vertices, alpha, beta, theta, rho, dend, variant)
+  
+  laws {
+  	
+  	// prior over dendrograms 
+  	dend ~ UniformDendrogram()
+    
+  	// hyperpriors
+   	alpha ~ Gamma(2.0, 0.5)
+   	beta ~ Gamma(2.0, 0.5)
+   
+	theta ~ Beta(4.0, 2.0)
+   	rho ~ Beta(1.0, 4.0)
+   
+   	// likelihood
+   	graph | dend, alpha, beta, theta, rho, variant ~ LikelihoodComputer(dend, alpha, beta, theta, rho, variant)
+    
+  }
+    
+}

@@ -1,0 +1,135 @@
+package bhcond
+
+import bhcond.GraphAdjMatrix.MutableGraphAdjMatrix
+
+import static bhcond.StaticUtils.*
+
+/*
+ * Compute the marginalized likelihood
+ * 
+ * p(G | D, alpha, beta, theta, rho)
+ * 
+ * where the form of the likelihood is specified by the variable 'variant'
+ */
+
+model LikelihoodComputer {
+	
+  param BasicDendrogram dend // parameter
+  param RealVar alpha // hyperparameter
+  param RealVar beta // hyperparamter
+  param RealVar theta // hyperparameter - mixture parameter
+  param RealVar rho // hyperparameter - global prob. parameter for the truncated Geometric component
+  random GraphAdjMatrix graph // data
+  param ModelVariant variant // enum type specifying which variant of the model to use
+	
+  
+  laws {
+  	
+    logf(dend, alpha, beta, theta, rho, variant, graph) {
+    
+      // Check that constraints are not violated for the hyperparameters during the slice sampling
+      if(variant == ModelVariant.BINOM && (alpha <= 0.0 || beta <= 0.0)) {
+        return NEGATIVE_INFINITY;
+      } else if(variant == ModelVariant.ZEROINFLATED && (alpha <= 0.0 || beta <= 0.0 || theta < 0 || theta >= 1)) {
+        return NEGATIVE_INFINITY;
+      } else if(variant == ModelVariant.GEOBINOM && (alpha <= 0.0 || beta <= 0.0 || theta < 0 || theta >= 1 || rho < 0 || rho > 1)) {
+        return NEGATIVE_INFINITY;
+      }
+      
+      // iterate over all internal nodes
+      // calculate logProbability for each internal node
+      // add to current sum
+      
+      var sum = 0.0;
+      
+      // get all internal tree nodes in dend
+      // Note: there are n-1 internal nodes for n vertices
+      val internalNodes = dend.getInternalNodes();
+      
+      for(BasicTreeNode r: internalNodes) {
+      
+        val Lr = dend.countLRleaves(r, true); // number of leaves in left subtree rooted at r
+        val Rr = dend.countLRleaves(r, false); // number of leaves in right subtree rooted at r
+        
+        /**
+        * Calculate E_r, the number of edges in graph whose endpoints have r as their LCA in dend
+        */ 
+        
+        // extract the vertex IDs of the leaf nodes from the left and right subtrees rooted at r
+        // by default, r must be the LCA between the leaf nodes in the sets 'left' and 'right'
+        val left = dend.getLRSubtree(r, true);
+        val right = dend.getLRSubtree(r, false);
+        
+        // count the number of edges in the graph between the left and right sets of vertices
+        val Er = graph.countEdgesBetween(left, right);
+        
+        if(variant == ModelVariant.HRG) {
+            
+            val LR = Lr * Rr;
+
+            // We want to avoid the scenarios where p_bar = 0 or 1, in order to avoid computing log(0)
+            if(Er != 0 && Er != LR) {
+
+                // Compute the maximum likelihood estimator for p_r, we call p_bar
+                val p_bar = Er as double / LR;
+  		
+                // Compute the marginalized likelihood p(G | D)       
+                sum += Er * log(p_bar) + (LR - Er) * log(1 - p_bar);
+
+                //System.out.println("p_bar = " + p_bar);
+            }
+            // Otherwise, we add 0 to the log-likelihood, as per the convention used by Clauset et al.
+            // Note from Nick Dronen's Python code, as justification for using this convention:
+            // "We do not want to be biased towards assortative or disassortative
+            // models, so don't assume that the lack of edges between the left
+            // and right subtrees indicates a lack of fit."
+        	
+        } else {
+        
+        	/**
+        	* Compute the marginalized likelihood p(G | D, alpha, beta, theta, rho)
+        	*/
+         
+        	// First, compute the component due to the Beta - Binomial Mixture (log-scale)
+        	// Since it appears in all fully Bayesian model variations
+        	var binPart = betaBinomialLogDensity(alpha, beta, Lr, Rr, Er);
+        
+        	if(variant == ModelVariant.BINOM) { // use the base model, without another mixture component
+        
+                    sum += binPart;
+          
+        	} else { // use the mixture model
+                        
+                    binPart += log(1 - theta);
+
+                    if(variant == ModelVariant.ZEROINFLATED) { // the other mixture component comes from the point mass at zero
+
+                        // Compute the likelihood component from the point mass
+                        if(Er == 0) { // when E_r = 0 add both mixture components using the LogSumExp trick
+                            sum += bayonet.math.NumericalUtils.logAdd(log(theta), binPart);
+                        } else { // when E_r > 0 add the component due to the Beta mixture
+                            sum += binPart;	
+                        }
+            
+                    } else { // the other mixture component comes from the Truncated Geometric
+          
+            		// Compute the likelihood component due to the Truncated Geometric (log-scale)
+            		var geoPart = log(theta) + truncatedGeometricLogDensity(rho, Lr, Rr, Er);
+            		// add both mixture components using the LogSumExp trick
+            		sum += bayonet.math.NumericalUtils.logAdd(geoPart, binPart);
+                    }
+        	}
+      	}
+      	
+      }
+      //System.out.println("Log density = " + sum);
+      return sum
+    }
+    
+  }
+	
+  generate (rand) {
+	  (graph as MutableGraphAdjMatrix).sampleGraph(rand, alpha, beta, theta, rho, dend, variant);
+  }
+	
+}

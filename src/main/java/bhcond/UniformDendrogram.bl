@@ -1,0 +1,39 @@
+package bhcond
+
+model UniformDendrogram {
+  
+  random BasicDendrogram dend
+  
+  
+  laws {
+    logf(dend)  { 
+    		// A full binary tree is a rooted tree in which each internal vertex has exactly two children.
+    		// We consider full binary trees with labeled leaves.
+    		// The number of distinct full binary trees with n labeled leaves is (2n-3)!!
+    		var sum = 0.0;
+    		
+    		val numLeaves = dend.getNumLeaves();
+    		var n = (2 * numLeaves) - 3;
+    		
+    		// For n even, n=2k, we have the identity n!! = 2^k * k!
+    		// For n odd, n=2k-1, we have the identity n!! = (2k)! / (2^k * k!)
+    		
+    		if((n % 2) == 0) { // even
+    			val k = n / 2;
+    			sum += - ( k * log(2) + logFactorial(k) );
+    			
+    		} else { // odd
+    			val k = (n + 1) / 2;
+    			sum += - ( (logFactorial(n+1)) - (k * log(2) + logFactorial(k)) )
+    		}
+    		
+    		return(sum);
+    		
+    }
+  }
+  
+  generate(rand) {
+    dend.sampleUniform(rand);
+  }
+  
+}
