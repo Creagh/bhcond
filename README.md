@@ -62,7 +62,7 @@ The Blang file [`BHCOND.bl`](src/main/java/bhcond/BHCOND.bl), and specifically t
 
 The code in lines 25 - 30 specify the priors and their parameters. They can be modified as desired.
 
-https://github.com/Creagh/bhcond/blob/36d48dbb8b5f27bf1b0ce46a308f55eaccf4a360/src/main/java/bhcond/BHCOND.bl#L25-L30
+https://github.com/Creagh/bhcond/blob/0285da99ee186bfa8d9e3b62b601b50ee3a4b4e9/src/main/java/bhcond/BHCOND.bl#L25-L30
 
 However, the uniform prior over dendrograms (line 23) and likelihood (line 33) should **not** be modified.
 
