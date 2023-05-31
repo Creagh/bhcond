@@ -15,6 +15,8 @@ import java.util.List;
 import java.util.Queue;
 import java.util.Set;
 
+import org.eclipse.xtext.xbase.lib.Pair;
+
 import com.google.common.collect.Lists;
 import com.google.common.graph.EndpointPair;
 
@@ -82,8 +84,8 @@ public class TestForwardSampling {
 
 					// SIMULATE DATA:
 					// sample network and store as adjacency matrix
-					Pair pair = sampleNetwork(rand, dend, p);
-					int[][] adj = pair.getArray1();
+					Pair<int[][], double[][]> pair = sampleNetwork(rand, dend, p);
+					int[][] adj = pair.getKey();
 					//double[][] pr = pair.getArray2();
 
 					// print the results
@@ -319,7 +321,7 @@ public class TestForwardSampling {
 	 * @param double[] p - an array containing the internal node probabilities, in arbitrary order, since they are i.i.d.
 	 * @return
 	 */
-	private static Pair sampleNetwork(Random rand, BasicDendrogram dend, double[] p) {
+	private static Pair<int[][], double[][]> sampleNetwork(Random rand, BasicDendrogram dend, double[] p) {
 		
 		int n = p.length + 1;
 		int[][] adj = new int[n][n];
@@ -361,7 +363,7 @@ public class TestForwardSampling {
   			
   		}
   		
-		return new Pair(adj, pr);
+		return new Pair<int[][], double[][]>(adj, pr);
 	}
 	
 	/**
