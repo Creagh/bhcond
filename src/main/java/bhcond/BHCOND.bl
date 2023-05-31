@@ -23,11 +23,11 @@ model BHCOND {
   	dend ~ UniformDendrogram()
     
   	// hyperpriors
-   	alpha ~ Gamma(2.0, 0.5)
-   	beta ~ Gamma(2.0, 0.5)
+    alpha ~ Gamma(2.0, 0.5)
+    beta ~ Gamma(2.0, 0.5)
 
     theta ~ Beta(4.0, 2.0)
-   	rho ~ Beta(1.0, 4.0)
+    rho ~ Beta(1.0, 4.0)
    
    	// likelihood
    	graph | dend, alpha, beta, theta, rho, variant ~ LikelihoodComputer(dend, alpha, beta, theta, rho, variant)
